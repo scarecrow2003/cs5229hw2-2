@@ -33,6 +33,8 @@ import org.slf4j.LoggerFactory;
  */
 public class NAT implements IOFMessageListener, IFloodlightModule {
 
+    protected static Logger log = LoggerFactory.getLogger(NAT.class);
+
     protected IFloodlightProviderService floodlightProvider;
     protected Set<Long> macAddresses;
     protected static Logger logger;
@@ -64,7 +66,78 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
 
     // Main Place to Handle PacketIN to perform NAT
     private Command handlePacketIn(IOFSwitch sw, OFPacketIn pi, FloodlightContext cntx) {
+        Ethernet eth = IFloodlightProviderService.bcStore.get(cntx, IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
+        IPacket pkt = eth.getPayload();
+
+        if (eth.isBroadcast() || eth.isMulticast()) {
+            if (pkt instanceof ARP) {
+                ARP arpRequest = (ARP) eth.getPayload();
+                IPv4Address targetProtocolAddress = arpRequest.getTargetProtocolAddress();
+
+                String serverAddress = "10.0.0.11";
+                if (serverAddress.equals(targetProtocolAddress.toString())) {
+                    MacAddress serverMacAddress = MacAddress.of(IPMacMap.get(serverAddress));
+                    IPacket arpReply = new Ethernet()
+                            .setSourceMACAddress(serverMacAddress)
+                            .setDestinationMACAddress(eth.getSourceMACAddress())
+                            .setEtherType(EthType.ARP)
+                            .setVlanID(eth.getVlanID())
+                            .setPriorityCode(eth.getPriorityCode())
+                            .setPayload(new ARP()
+                                    .setHardwareType(ARP.HW_TYPE_ETHERNET)
+                                    .setProtocolType(ARP.PROTO_TYPE_IP)
+                                    .setHardwareAddressLength((byte) 6)
+                                    .setProtocolAddressLength((byte) 4)
+                                    .setOpCode(ARP.OP_REPLY)
+                                    .setSenderHardwareAddress(serverMacAddress)
+                                    .setSenderProtocolAddress(arpRequest.getTargetProtocolAddress())
+                                    .setTargetHardwareAddress(eth.getSourceMACAddress())
+                                    .setTargetProtocolAddress(arpRequest.getSenderProtocolAddress())
+                            );
+
+                    pushPacket(arpReply, sw, OFBufferId.NO_BUFFER, OFPort.ANY, (pi.getVersion().compareTo(OFVersion.OF_12) < 0 ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT)), cntx, true);
+                    log.debug("proxy ARP reply pushed as {}", IPv4.fromIPv4Address(IPv4.toIPv4Address(serverAddress)));
+                    return Command.STOP;
+                }
+            }
+        } else {
+
+        }
         return Command.CONTINUE;
+    }
+
+    /**
+     * used to push any packet
+     *
+     * @param packet packet
+     * @param sw sw
+     * @param bufferId bufferId
+     * @param inPort inPort
+     * @param outPort outPort
+     * @param cntx cntx
+     * @param flush flush
+     */
+    public void pushPacket(IPacket packet,
+                           IOFSwitch sw,
+                           OFBufferId bufferId,
+                           OFPort inPort,
+                           OFPort outPort,
+                           FloodlightContext cntx,
+                           boolean flush) {
+        OFPacketOut.Builder pob = sw.getOFFactory().buildPacketOut();
+        List<OFAction> actions = new ArrayList<OFAction>();
+        actions.add(sw.getOFFactory().actions().buildOutput().setPort(outPort).setMaxLen(Integer.MAX_VALUE).build());
+        pob.setActions(actions);
+        pob.setBufferId(bufferId);
+        pob.setInPort(inPort);
+        if (pob.getBufferId() == OFBufferId.NO_BUFFER) {
+            if (packet == null) {
+                return;
+            }
+            byte[] packetData = packet.serialize();
+            pob.setData(packetData);
+        }
+        sw.write(pob.build());
     }
 
     @Override
