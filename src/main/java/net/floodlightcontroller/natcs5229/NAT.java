@@ -121,6 +121,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                         eth.setDestinationMACAddress(IPMacMap.get(serverAddress));
                         eth.setSourceMACAddress(RouterInterfaceMacMap.get(publicAddress));
                         ip_pkt.setSourceAddress(IPv4Address.of(publicAddress));
+                        ip_pkt.resetChecksum();
                         pushPacket(eth, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get(serverAddress),
                                 cntx, true);
                         return Command.STOP;
@@ -178,7 +179,6 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
 
     @Override
     public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
-        logger.info(msg.getType().toString());
         switch(msg.getType()) {
             case PACKET_IN:
                 return handlePacketIn(sw, (OFPacketIn)msg, cntx);
