@@ -117,12 +117,19 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                 String publicAddress = "10.0.0.1";
                 if (serverAddress.equals(destIpAddress.toString())) {
                     log.info("destination is server");
-                    if (ip_pkt.getPayload() instanceof ICMP) {
-                        log.info("and is icmp package");
-                        log.info("code {}", ((ICMP) ip_pkt.getPayload()).getIcmpCode());
-                        log.info("type {}", ((ICMP) ip_pkt.getPayload()).getIcmpType());
+                    if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x8) {
+                        log.info("and is icmp package request");
                         ip_pkt.setSourceAddress(IPv4Address.of(publicAddress));
                         pushPacket(ip_pkt, sw, pi.getBufferId(), (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get(serverAddress),
+                                cntx, true);
+                        return Command.STOP;
+                    }
+                } else if (publicAddress.equals(destIpAddress.toString())) {
+                    log.info("destination is public");
+                    if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x0) {
+                        log.info("and is icmp package reply");
+                        ip_pkt.setDestinationAddress(IPv4Address.of("192.168.0.20")); //todo
+                        pushPacket(ip_pkt, sw, pi.getBufferId(), (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get("192.168.0.20"),
                                 cntx, true);
                         return Command.STOP;
                     }
