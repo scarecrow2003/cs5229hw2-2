@@ -34,8 +34,6 @@ import org.slf4j.LoggerFactory;
  */
 public class NAT implements IOFMessageListener, IFloodlightModule {
 
-    protected static Logger log = LoggerFactory.getLogger(NAT.class);
-
     protected IFloodlightProviderService floodlightProvider;
     protected Set<Long> macAddresses;
     protected static Logger logger;
@@ -72,10 +70,10 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
 
         if (eth.isBroadcast() || eth.isMulticast()) {
             if (pkt instanceof ARP) {
-                log.info("receive arp");
+                logger.info("receive arp");
                 ARP arpRequest = (ARP) eth.getPayload();
                 IPv4Address targetProtocolAddress = arpRequest.getTargetProtocolAddress();
-                log.info("target protocol address {}", targetProtocolAddress.toString());
+                logger.info("target protocol address {}", targetProtocolAddress.toString());
 //                IPv4Address sourceProtocolAddress = arpRequest.getSenderProtocolAddress();
 //                log.info("sender protocol address {}", sourceProtocolAddress.toString());
 //                MacAddress targetHardwareAddress = arpRequest.getTargetHardwareAddress();
@@ -103,23 +101,23 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                                     .setTargetProtocolAddress(arpRequest.getSenderProtocolAddress())
                             );
                     pushPacket(arpReply, sw, OFBufferId.NO_BUFFER, OFPort.ANY, (pi.getVersion().compareTo(OFVersion.OF_12) < 0 ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT)), cntx, true);
-                    log.debug("proxy ARP reply pushed as {}", targetProtocolAddress.toString());
+                    logger.debug("proxy ARP reply pushed as {}", targetProtocolAddress.toString());
                     return Command.STOP;
                 }
             }
         } else {
-            log.info(pkt.getClass().getName());
+            logger.info(pkt.getClass().getName());
             if (pkt instanceof IPv4) {
-                log.info("send package");
+                logger.info("send package");
                 IPv4 ip_pkt = (IPv4) pkt;
 
                 IPv4Address destIpAddress = ip_pkt.getDestinationAddress();
                 String serverAddress = "10.0.0.11";
                 String publicAddress = "10.0.0.1";
                 if (serverAddress.equals(destIpAddress.toString())) {
-                    log.info("destination is server");
+                    logger.info("destination is server");
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x8) {
-                        log.info("and is icmp package request");
+                        logger.info("and is icmp package request");
                         eth.setDestinationMACAddress(IPMacMap.get(serverAddress));
                         eth.setSourceMACAddress(RouterInterfaceMacMap.get(publicAddress));
                         ip_pkt.setSourceAddress(IPv4Address.of(publicAddress));
@@ -128,9 +126,9 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                         return Command.STOP;
                     }
                 } else if (publicAddress.equals(destIpAddress.toString())) {
-                    log.info("destination is public");
+                    logger.info("destination is public");
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x0) {
-                        log.info("and is icmp package reply");
+                        logger.info("and is icmp package reply");
                         eth.setDestinationMACAddress("00:00:00:00:00:02");
                         ip_pkt.setDestinationAddress(IPv4Address.of("192.168.0.20")); //todo
                         pushPacket(pkt, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get("192.168.0.20"),
@@ -180,6 +178,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
 
     @Override
     public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
+        logger.info(msg.getType().toString());
         switch(msg.getType()) {
             case PACKET_IN:
                 return handlePacketIn(sw, (OFPacketIn)msg, cntx);
