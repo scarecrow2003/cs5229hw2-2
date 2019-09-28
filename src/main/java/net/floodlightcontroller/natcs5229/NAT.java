@@ -9,6 +9,7 @@ import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.core.util.AppCookie;
+import net.floodlightcontroller.loadbalancer.LBVip;
 import net.floodlightcontroller.packet.*;
 import net.floodlightcontroller.routing.IRoutingDecision;
 import net.floodlightcontroller.routing.Route;
@@ -81,8 +82,8 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
 //                log.info("target hardware address {}", targetHardwareAddress.toString());
 //                MacAddress sourceHardwareAddress = arpRequest.getTargetHardwareAddress();
 //                log.info("sender hardware address {}", sourceHardwareAddress.toString());
-                String serverAddress = "10.0.0.11";
-                if (RouterInterfaceMacMap.containsKey(targetProtocolAddress.toString()) || serverAddress.equals(targetProtocolAddress.toString())) {
+//                String serverAddress = "10.0.0.11";
+                if (RouterInterfaceMacMap.containsKey(targetProtocolAddress.toString())) {
                     MacAddress targetMacAddress = MacAddress.of(RouterInterfaceMacMap.get(targetProtocolAddress.toString()));
                     IPacket arpReply = new Ethernet()
                             .setSourceMACAddress(targetMacAddress)
@@ -107,7 +108,26 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                 }
             }
         } else {
+            if (pkt instanceof IPv4) {
+                log.info("send package");
+                IPv4 ip_pkt = (IPv4) pkt;
 
+                IPv4Address destIpAddress = ip_pkt.getDestinationAddress();
+                String serverAddress = "10.0.0.11";
+                String publicAddress = "10.0.0.1";
+                if (serverAddress.equals(destIpAddress.toString())) {
+                    log.info("destination is server");
+                    if (ip_pkt.getPayload() instanceof ICMP) {
+                        log.info("and is icmp package");
+                        log.info("code {}", ((ICMP) ip_pkt.getPayload()).getIcmpCode());
+                        log.info("type {}", ((ICMP) ip_pkt.getPayload()).getIcmpType());
+                        ip_pkt.setSourceAddress(IPv4Address.of(publicAddress));
+                        pushPacket(ip_pkt, sw, pi.getBufferId(), (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get(serverAddress),
+                                cntx, true);
+                        return Command.STOP;
+                    }
+                }
+            }
         }
         return Command.CONTINUE;
     }
