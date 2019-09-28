@@ -170,6 +170,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
             byte[] packetData = packet.serialize();
             pob.setData(packetData);
         }
+        log.info(pob.toString());
         sw.write(pob.build());
     }
 
