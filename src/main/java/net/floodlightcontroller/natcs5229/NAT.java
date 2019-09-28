@@ -71,11 +71,13 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
 
         if (eth.isBroadcast() || eth.isMulticast()) {
             if (pkt instanceof ARP) {
+                log.info("receive arp");
                 ARP arpRequest = (ARP) eth.getPayload();
                 IPv4Address targetProtocolAddress = arpRequest.getTargetProtocolAddress();
 
                 String serverAddress = "10.0.0.11";
                 if (serverAddress.equals(targetProtocolAddress.toString())) {
+                    log.info("arp reply");
                     MacAddress serverMacAddress = MacAddress.of(IPMacMap.get(serverAddress));
                     IPacket arpReply = new Ethernet()
                             .setSourceMACAddress(serverMacAddress)
