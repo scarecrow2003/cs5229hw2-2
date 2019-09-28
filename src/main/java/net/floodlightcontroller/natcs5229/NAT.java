@@ -108,6 +108,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                 }
             }
         } else {
+            log.info(pkt.getClass().getName());
             if (pkt instanceof IPv4) {
                 log.info("send package");
                 IPv4 ip_pkt = (IPv4) pkt;
