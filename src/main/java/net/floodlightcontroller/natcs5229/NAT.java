@@ -71,22 +71,13 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
 
         if (eth.isBroadcast() || eth.isMulticast()) {
             if (pkt instanceof ARP) {
-                log.info("receive arp");
                 ARP arpRequest = (ARP) eth.getPayload();
                 IPv4Address targetProtocolAddress = arpRequest.getTargetProtocolAddress();
-                log.info("target protocol address {}", targetProtocolAddress.toString());
-                IPv4Address sourceProtocolAddress = arpRequest.getSenderProtocolAddress();
-                log.info("sender protocol address {}", sourceProtocolAddress.toString());
-                MacAddress targetHardwareAddress = arpRequest.getTargetHardwareAddress();
-                log.info("target hardware address {}", targetHardwareAddress.toString());
-                MacAddress sourceHardwareAddress = arpRequest.getTargetHardwareAddress();
-                log.info("sender hardware address {}", sourceHardwareAddress.toString());
                 String serverAddress = "10.0.0.11";
-                if (serverAddress.equals(targetProtocolAddress.toString())) {
-                    log.info("arp reply");
-                    MacAddress serverMacAddress = MacAddress.of(IPMacMap.get(serverAddress));
+                if (RouterInterfaceMacMap.containsKey(targetProtocolAddress.toString()) || serverAddress.equals(targetProtocolAddress.toString())) {
+                    MacAddress targetMacAddress = MacAddress.of(RouterInterfaceMacMap.get(targetProtocolAddress.toString()));
                     IPacket arpReply = new Ethernet()
-                            .setSourceMACAddress(serverMacAddress)
+                            .setSourceMACAddress(targetMacAddress)
                             .setDestinationMACAddress(eth.getSourceMACAddress())
                             .setEtherType(EthType.ARP)
                             .setVlanID(eth.getVlanID())
@@ -97,14 +88,13 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                                     .setHardwareAddressLength((byte) 6)
                                     .setProtocolAddressLength((byte) 4)
                                     .setOpCode(ARP.OP_REPLY)
-                                    .setSenderHardwareAddress(serverMacAddress)
+                                    .setSenderHardwareAddress(targetMacAddress)
                                     .setSenderProtocolAddress(arpRequest.getTargetProtocolAddress())
                                     .setTargetHardwareAddress(eth.getSourceMACAddress())
                                     .setTargetProtocolAddress(arpRequest.getSenderProtocolAddress())
                             );
-
                     pushPacket(arpReply, sw, OFBufferId.NO_BUFFER, OFPort.ANY, (pi.getVersion().compareTo(OFVersion.OF_12) < 0 ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT)), cntx, true);
-                    log.debug("proxy ARP reply pushed as {}", IPv4.fromIPv4Address(IPv4.toIPv4Address(serverAddress)));
+                    log.debug("proxy ARP reply pushed as {}", targetProtocolAddress.toString());
                     return Command.STOP;
                 }
             }
