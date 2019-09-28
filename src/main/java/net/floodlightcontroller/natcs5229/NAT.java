@@ -132,7 +132,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                         eth.setDestinationMACAddress("00:00:00:00:00:02");
                         ip_pkt.setDestinationAddress(IPv4Address.of("192.168.0.20")); //todo
                         ip_pkt.resetChecksum();
-                        pushPacket(pkt, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get("192.168.0.20"),
+                        pushPacket(eth, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get("192.168.0.20"),
                                 cntx, true);
                         return Command.STOP;
                     }
