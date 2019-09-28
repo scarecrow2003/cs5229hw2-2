@@ -119,8 +119,10 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                     log.info("destination is server");
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x8) {
                         log.info("and is icmp package request");
+                        eth.setDestinationMACAddress(IPMacMap.get(serverAddress));
+                        eth.setSourceMACAddress(RouterInterfaceMacMap.get(publicAddress));
                         ip_pkt.setSourceAddress(IPv4Address.of(publicAddress));
-                        pushPacket(ip_pkt, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get(serverAddress),
+                        pushPacket(eth, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get(serverAddress),
                                 cntx, true);
                         return Command.STOP;
                     }
@@ -128,8 +130,9 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                     log.info("destination is public");
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x0) {
                         log.info("and is icmp package reply");
+                        eth.setDestinationMACAddress("00:00:00:00:00:02");
                         ip_pkt.setDestinationAddress(IPv4Address.of("192.168.0.20")); //todo
-                        pushPacket(ip_pkt, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get("192.168.0.20"),
+                        pushPacket(pkt, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get("192.168.0.20"),
                                 cntx, true);
                         return Command.STOP;
                     }
@@ -170,7 +173,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
             byte[] packetData = packet.serialize();
             pob.setData(packetData);
         }
-        log.info(pob.build().toString());
+//        log.info(pob.build().toString());
         sw.write(pob.build());
     }
 
