@@ -74,7 +74,13 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                 log.info("receive arp");
                 ARP arpRequest = (ARP) eth.getPayload();
                 IPv4Address targetProtocolAddress = arpRequest.getTargetProtocolAddress();
-                log.info("target address {}", targetProtocolAddress.toString());
+                log.info("target protocol address {}", targetProtocolAddress.toString());
+                IPv4Address sourceProtocolAddress = arpRequest.getSenderProtocolAddress();
+                log.info("sender protocol address {}", sourceProtocolAddress.toString());
+                MacAddress targetHardwareAddress = arpRequest.getTargetHardwareAddress();
+                log.info("target hardware address {}", targetHardwareAddress.toString());
+                MacAddress sourceHardwareAddress = arpRequest.getTargetHardwareAddress();
+                log.info("sender hardware address {}", sourceHardwareAddress.toString());
                 String serverAddress = "10.0.0.11";
                 if (serverAddress.equals(targetProtocolAddress.toString())) {
                     log.info("arp reply");
