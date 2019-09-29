@@ -109,7 +109,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                         logger.info("and is icmp package request");
                         // 51 byte 39 40
                         byte[] bytes = pi.getData();
-                        int identifier = ((bytes[39] & 0xff) << 8) | (bytes[40] & 0xff);
+                        int identifier = ((bytes[38] & 0xff) << 8) | (bytes[39] & 0xff);
                         logger.info(String.valueOf(identifier));
                         StringBuilder sb = new StringBuilder();
                         boolean odd = true;
