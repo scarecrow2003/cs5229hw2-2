@@ -19,7 +19,14 @@ import org.projectfloodlight.openflow.protocol.*;
 import java.io.IOException;
 import java.util.*;
 import net.floodlightcontroller.core.IFloodlightProviderService;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
@@ -42,6 +49,9 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
     HashMap<Integer, String> IPTransMap = new HashMap<>();
     HashMap<String, OFPort> IPPortMap = new HashMap<>();
     HashMap<String, String> IPMacMap = new HashMap<>();
+
+    ConcurrentMap<Integer, String> identifierMap = new ConcurrentHashMap<>();
+    ConcurrentMap<Integer, Long> identifierLastUsedMap = new ConcurrentHashMap<>();
 
 
     @Override
@@ -107,20 +117,23 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                     logger.info("destination is server");
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x8) {
                         logger.info("and is icmp package request");
-                        // 51 byte 39 40
                         byte[] bytes = pi.getData();
                         int identifier = ((bytes[38] & 0xff) << 8) | (bytes[39] & 0xff);
-                        logger.info(String.valueOf(identifier));
-                        StringBuilder sb = new StringBuilder();
-                        boolean odd = true;
-                        for (byte b : bytes) {
-                            sb.append(String.format("%02x", b));
-                            odd = !odd;
-                            if (odd) {
-                                sb.append(" ");
-                            }
+                        identifierLastUsedMap.put(identifier, Calendar.getInstance().getTimeInMillis() / 1000L);
+                        if (!identifierMap.containsKey(identifier)) {
+                            identifierMap.put(identifier, ip_pkt.getSourceAddress().toString());
                         }
-                        logger.info(sb.toString());
+//                        logger.info(String.valueOf(identifier));
+//                        StringBuilder sb = new StringBuilder();
+//                        boolean odd = true;
+//                        for (byte b : bytes) {
+//                            sb.append(String.format("%02x", b));
+//                            odd = !odd;
+//                            if (odd) {
+//                                sb.append(" ");
+//                            }
+//                        }
+//                        logger.info(sb.toString());
 //                        logger.info("identifier high {}", String.valueOf(bytes[51]));
 //                        logger.info("identifier high {}", String.valueOf(bytes[52]));
 //                        logger.info("second identifier high {}", String.valueOf(bytes[43]));
@@ -140,12 +153,19 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                     logger.info("destination is public");
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x0) {
                         logger.info("and is icmp package reply");
-                        eth.setDestinationMACAddress("00:00:00:00:00:02");
-                        ip_pkt.setDestinationAddress(IPv4Address.of("192.168.0.20")); //todo
-                        ip_pkt.resetChecksum();
-                        pushPacket(eth, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get("192.168.0.20"),
-                                cntx, true);
-                        return Command.STOP;
+                        byte[] bytes = pi.getData();
+                        int identifier = ((bytes[38] & 0xff) << 8) | (bytes[39] & 0xff);
+                        if (identifierMap.containsKey(identifier)) {
+                            String destinationAddress = identifierMap.get(identifier);
+                            String destinationMACAddress = IPMacMap.get(destinationAddress);
+                            OFPort outPort = IPPortMap.get(destinationAddress);
+                            eth.setDestinationMACAddress(destinationMACAddress);
+                            ip_pkt.setDestinationAddress(destinationAddress);
+                            ip_pkt.resetChecksum();
+                            pushPacket(eth, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), outPort,
+                                    cntx, true);
+                            return Command.STOP;
+                        }
                     }
                 }
             }
@@ -245,5 +265,22 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
         floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
+
+        final long timeout = 5;
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                logger.info("Cached map size: " + identifierMap.size());
+                long current = Calendar.getInstance().getTimeInMillis() / 1000L;
+                for (Integer key: identifierLastUsedMap.keySet()) {
+                    if (identifierLastUsedMap.get(key) < current - timeout) {
+                        logger.info("Remove map for identifier: " + key);
+                        identifierLastUsedMap.remove(key);
+                        identifierMap.remove(key);
+                    }
+                }
+            }
+        }, 1, 1, TimeUnit.SECONDS);
     }
 }
