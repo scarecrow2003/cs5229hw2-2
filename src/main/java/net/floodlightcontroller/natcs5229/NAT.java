@@ -120,7 +120,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                         eth.setDestinationMACAddress(IPMacMap.get(serverAddress));
                         eth.setSourceMACAddress(RouterInterfaceMacMap.get(publicAddress));
                         ip_pkt.setSourceAddress(IPv4Address.of(publicAddress));
-//                        ip_pkt.resetChecksum();
+                        ip_pkt.resetChecksum();
                         pushPacket(eth, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get(serverAddress),
                                 cntx, true);
                         return Command.STOP;
@@ -131,7 +131,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                         logger.info("and is icmp package reply");
                         eth.setDestinationMACAddress("00:00:00:00:00:02");
                         ip_pkt.setDestinationAddress(IPv4Address.of("192.168.0.20")); //todo
-//                        ip_pkt.resetChecksum();
+                        ip_pkt.resetChecksum();
                         pushPacket(eth, sw, OFBufferId.NO_BUFFER, (pi.getVersion().compareTo(OFVersion.OF_12) < 0) ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT), IPPortMap.get("192.168.0.20"),
                                 cntx, true);
                         return Command.STOP;
