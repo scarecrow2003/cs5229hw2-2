@@ -1,5 +1,6 @@
 package net.floodlightcontroller.natcs5229;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IListener;
 import net.floodlightcontroller.core.IOFMessageListener;
@@ -117,6 +118,12 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                     logger.info("destination is server");
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x8) {
                         logger.info("and is icmp package request");
+                        ObjectMapper mapper = new ObjectMapper();
+                        try {
+                            mapper.writeValue(System.out, ip_pkt);
+                        } catch (IOException e) {
+
+                        }
                         logger.info("serialize {}", new String(ip_pkt.serialize()));
                         eth.setDestinationMACAddress(IPMacMap.get(serverAddress));
                         eth.setSourceMACAddress(RouterInterfaceMacMap.get(publicAddress));
