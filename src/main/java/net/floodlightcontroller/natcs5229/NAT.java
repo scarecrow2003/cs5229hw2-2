@@ -109,10 +109,20 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                         logger.info("and is icmp package request");
                         // 51 byte
                         byte[] bytes = pi.getData();
-                        logger.info("identifier high {}", String.valueOf(bytes[51]));
-                        logger.info("identifier high {}", String.valueOf(bytes[52]));
-                        logger.info("second identifier high {}", String.valueOf(bytes[43]));
-                        logger.info("second identifier high {}", String.valueOf(bytes[44]));
+                        StringBuilder sb = new StringBuilder();
+                        boolean odd = true;
+                        for (byte b : bytes) {
+                            sb.append(String.format("%02x", b));
+                            odd = !odd;
+                            if (odd) {
+                                sb.append(" ");
+                            }
+                        }
+                        logger.info(sb.toString());
+//                        logger.info("identifier high {}", String.valueOf(bytes[51]));
+//                        logger.info("identifier high {}", String.valueOf(bytes[52]));
+//                        logger.info("second identifier high {}", String.valueOf(bytes[43]));
+//                        logger.info("second identifier high {}", String.valueOf(bytes[44]));
 //                        byte[] bytes = ((ICMP) ip_pkt.getPayload()).serialize();
 //                        logger.info("identifier high {}", String.valueOf(bytes[5]));
 //                        logger.info("identifier low {}", String.valueOf(bytes[6]));
