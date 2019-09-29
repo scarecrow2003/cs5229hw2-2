@@ -108,8 +108,10 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x8) {
                         logger.info("and is icmp package request");
                         // 51 byte
-                        byte[] bytes = pi.getData();
-                        int identifier = (bytes[51] << 8) + bytes[52];
+//                        byte[] bytes = pi.getData();
+//                        int identifier = (bytes[51] << 8) + bytes[52];
+                        byte[] bytes = ((ICMP) ip_pkt.getPayload()).serialize();
+                        int identifier = (bytes[5] << 8) + bytes[6];
                         logger.info("identifier {}", String.valueOf(identifier));
                         eth.setDestinationMACAddress(IPMacMap.get(serverAddress));
                         eth.setSourceMACAddress(RouterInterfaceMacMap.get(publicAddress));
