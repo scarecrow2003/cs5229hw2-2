@@ -107,9 +107,27 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                     logger.info("destination is server");
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x8) {
                         logger.info("and is icmp package request");
+                        // 51 byte 39 40
                         byte[] bytes = pi.getData();
                         int identifier = ((bytes[39] & 0xff) << 8) | (bytes[40] & 0xff);
                         logger.info(String.valueOf(identifier));
+                        StringBuilder sb = new StringBuilder();
+                        boolean odd = true;
+                        for (byte b : bytes) {
+                            sb.append(String.format("%02x", b));
+                            odd = !odd;
+                            if (odd) {
+                                sb.append(" ");
+                            }
+                        }
+                        logger.info(sb.toString());
+//                        logger.info("identifier high {}", String.valueOf(bytes[51]));
+//                        logger.info("identifier high {}", String.valueOf(bytes[52]));
+//                        logger.info("second identifier high {}", String.valueOf(bytes[43]));
+//                        logger.info("second identifier high {}", String.valueOf(bytes[44]));
+//                        byte[] bytes = ((ICMP) ip_pkt.getPayload()).serialize();
+//                        logger.info("identifier high {}", String.valueOf(bytes[5]));
+//                        logger.info("identifier low {}", String.valueOf(bytes[6]));
                         eth.setDestinationMACAddress(IPMacMap.get(serverAddress));
                         eth.setSourceMACAddress(RouterInterfaceMacMap.get(publicAddress));
                         ip_pkt.setSourceAddress(IPv4Address.of(publicAddress));
