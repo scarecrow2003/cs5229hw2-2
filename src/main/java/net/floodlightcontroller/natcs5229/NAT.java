@@ -121,7 +121,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                         logger.info("and is icmp package request");
                         ObjectMapper mapper = new ObjectMapper();
                         try {
-                            String json = mapper.writeValueAsString(ip_pkt);
+                            String json = mapper.writeValueAsString((ICMP) ip_pkt.getPayload());
                             logger.info("JSON = " + json);
                         } catch (JsonProcessingException e) {
                             logger.info(e.getMessage());
