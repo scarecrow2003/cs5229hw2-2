@@ -111,8 +111,8 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
 //                        byte[] bytes = pi.getData();
 //                        int identifier = (bytes[51] << 8) + bytes[52];
                         byte[] bytes = ((ICMP) ip_pkt.getPayload()).serialize();
-                        int identifier = (bytes[5] << 8) + bytes[6];
-                        logger.info("identifier {}", String.valueOf(identifier));
+                        logger.info("identifier high {}", String.valueOf(bytes[5]));
+                        logger.info("identifier low {}", String.valueOf(bytes[6]));
                         eth.setDestinationMACAddress(IPMacMap.get(serverAddress));
                         eth.setSourceMACAddress(RouterInterfaceMacMap.get(publicAddress));
                         ip_pkt.setSourceAddress(IPv4Address.of(publicAddress));
