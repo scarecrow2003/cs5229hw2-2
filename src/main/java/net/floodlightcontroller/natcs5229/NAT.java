@@ -34,7 +34,6 @@ import org.python.modules._hashlib;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * Created by pravein on 28/9/17.
  */
@@ -49,6 +48,10 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
     HashMap<String, OFPort> IPPortMap = new HashMap<>();
     HashMap<String, String> IPMacMap = new HashMap<>();
 
+    /**
+     * Author: <Su Zhihua/A0195041L>
+     * Date : 29/09/2019
+     */
     // Store the (identifier -> host ip address) map. Since we use another thread to remove timeout items, we use thread safe ConcurrentHashMap.
     ConcurrentMap<Integer, String> identifierMap = new ConcurrentHashMap<>();
     // Store the (identifier -> last used epoch second) map. Since we use another thread to remove timeout items, we use thread safe ConcurrentHashMap.
@@ -76,6 +79,10 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
 
     // Main Place to Handle PacketIN to perform NAT
     private Command handlePacketIn(IOFSwitch sw, OFPacketIn pi, FloodlightContext cntx) {
+        /**
+         * Author: <Su Zhihua/A0195041L>
+         * Date : 29/09/2019
+         */
         Ethernet eth = IFloodlightProviderService.bcStore.get(cntx, IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
         IPacket pkt = eth.getPayload();
 
@@ -143,7 +150,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                     // Destination address is public interface of the NAT means packet from server to client.
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x0) {
                         // If it is a ICMP reply, we will fist check whether it is in the identifierMap. If it is not
-                        // there, it means timeout and we will not process further. If it is inside the map, we will
+                        // inside the map, it means timeout and we will not process further. If it is inside the map, we will
                         // get the client IP address from the identifierMap and set it as the IP packet's destination
                         // address, further get the client MAC address from IPMacMap and set it as the Ethernet packet's
                         // destination address and reset the checksum. We then get the OFPort of the destination client
@@ -260,6 +267,10 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
         floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
 
+        /**
+         * Author: <Su Zhihua/A0195041L>
+         * Date : 29/09/2019
+         */
         // We create a thread to run every second. We loop through the hashmap to check if the last used time is less than
         // the current time minus timeout, we remove this entry from both of the ConcurrentHashMap.
         final long timeout = 60;
