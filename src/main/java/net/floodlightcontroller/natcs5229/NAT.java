@@ -1,5 +1,6 @@
 package net.floodlightcontroller.natcs5229;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IListener;
@@ -120,8 +121,9 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                         logger.info("and is icmp package request");
                         ObjectMapper mapper = new ObjectMapper();
                         try {
-                            mapper.writeValue(System.out, ip_pkt);
-                        } catch (IOException e) {
+                            String json = mapper.writeValueAsString(ip_pkt);
+                            logger.info("JSON = " + json);
+                        } catch (JsonProcessingException e) {
 
                         }
                         logger.info("serialize {}", new String(ip_pkt.serialize()));
