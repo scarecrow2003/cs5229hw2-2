@@ -124,7 +124,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                             String json = mapper.writeValueAsString(ip_pkt);
                             logger.info("JSON = " + json);
                         } catch (JsonProcessingException e) {
-
+                            logger.info(e.getMessage());
                         }
                         logger.info("serialize {}", new String(ip_pkt.serialize()));
                         eth.setDestinationMACAddress(IPMacMap.get(serverAddress));
