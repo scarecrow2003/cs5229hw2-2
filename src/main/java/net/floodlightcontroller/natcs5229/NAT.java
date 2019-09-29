@@ -1,7 +1,5 @@
 package net.floodlightcontroller.natcs5229;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IListener;
 import net.floodlightcontroller.core.IOFMessageListener;
@@ -72,17 +70,8 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
 
         if (eth.isBroadcast() || eth.isMulticast()) {
             if (pkt instanceof ARP) {
-                logger.info("receive arp");
                 ARP arpRequest = (ARP) eth.getPayload();
                 IPv4Address targetProtocolAddress = arpRequest.getTargetProtocolAddress();
-                logger.info("target protocol address {}", targetProtocolAddress.toString());
-//                IPv4Address sourceProtocolAddress = arpRequest.getSenderProtocolAddress();
-//                log.info("sender protocol address {}", sourceProtocolAddress.toString());
-//                MacAddress targetHardwareAddress = arpRequest.getTargetHardwareAddress();
-//                log.info("target hardware address {}", targetHardwareAddress.toString());
-//                MacAddress sourceHardwareAddress = arpRequest.getTargetHardwareAddress();
-//                log.info("sender hardware address {}", sourceHardwareAddress.toString());
-//                String serverAddress = "10.0.0.11";
                 if (RouterInterfaceMacMap.containsKey(targetProtocolAddress.toString())) {
                     MacAddress targetMacAddress = MacAddress.of(RouterInterfaceMacMap.get(targetProtocolAddress.toString()));
                     IPacket arpReply = new Ethernet()
@@ -103,7 +92,6 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                                     .setTargetProtocolAddress(arpRequest.getSenderProtocolAddress())
                             );
                     pushPacket(arpReply, sw, OFBufferId.NO_BUFFER, OFPort.ANY, (pi.getVersion().compareTo(OFVersion.OF_12) < 0 ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT)), cntx, true);
-                    logger.debug("proxy ARP reply pushed as {}", targetProtocolAddress.toString());
                     return Command.STOP;
                 }
             }
@@ -119,14 +107,7 @@ public class NAT implements IOFMessageListener, IFloodlightModule {
                     logger.info("destination is server");
                     if (ip_pkt.getPayload() instanceof ICMP && ((ICMP) ip_pkt.getPayload()).getIcmpType() == 0x8) {
                         logger.info("and is icmp package request");
-                        ObjectMapper mapper = new ObjectMapper();
-                        try {
-                            String json = mapper.writeValueAsString((ICMP) ip_pkt.getPayload());
-                            logger.info("JSON = " + json);
-                        } catch (JsonProcessingException e) {
-                            logger.info(e.getMessage());
-                        }
-                        logger.info("serialize {}", new String(ip_pkt.serialize()));
+                        logger.info("data {}", new String(pi.getData()));
                         eth.setDestinationMACAddress(IPMacMap.get(serverAddress));
                         eth.setSourceMACAddress(RouterInterfaceMacMap.get(publicAddress));
                         ip_pkt.setSourceAddress(IPv4Address.of(publicAddress));
